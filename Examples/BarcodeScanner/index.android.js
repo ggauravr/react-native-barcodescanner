@@ -18,24 +18,53 @@ class BarcodeScannerApp extends Component {
       text: 'Scan Barcode',
       torchMode: 'off',
       type: '',
+      productName: '',
     };
+
+    this.handleBarcode = this.handleBarcode.bind(this);
+    this.findProduct = this.findProduct.bind(this);
   }
 
-  barcodeReceived(e) {
-    if (e.data !== this.state.barcode || e.type !== this.state.type) Vibration.vibrate();
-    
-    this.setState({
-      barcode: e.data,
-      text: `${e.data} (${e.type})`,
-      type: e.type,
-    });
+  findProduct(barcode) {
+      return fetch(`http://192.168.107.46:8080/barcodes/find/${barcode}`)
+                .then(response => response.json())
+  }
+
+  handleBarcode(e) {
+    if (e.data !== this.state.barcode || e.type !== this.state.type) {
+        Vibration.vibrate();
+
+        this.findProduct(e.data)
+            .then(product => {
+                if (product) {
+                    let productName = product.product_name;
+                    // product found
+                    this.setState({
+                      barcode: product.upc,
+                      productName,
+                      text: `${productName}`,
+                      type: e.type,
+                    });
+                }
+                else {
+                    // product not found
+                    this.setState({
+                      barcode: '',
+                      productName: '',
+                      text: 'Scan Barcode',
+                      type: '',
+                    });
+                }
+            })
+            .catch(err => {})
+    }
   }
 
   render() {
     return (
       <View style={styles.container}>
         <BarcodeScanner
-          onBarCodeRead={this.barcodeReceived.bind(this)}
+          onBarCodeRead={this.handleBarcode}
           style={{ flex: 1 }}
           torchMode={this.state.torchMode}
           cameraType={this.state.cameraType}
