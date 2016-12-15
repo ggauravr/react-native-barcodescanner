@@ -7,6 +7,7 @@ import {
   View
 } from 'react-native';
 import BarcodeScanner from 'react-native-barcodescanner';
+import Popup from 'react-native-popup';
 
 class BarcodeScannerApp extends Component {
   constructor(props) {
@@ -23,11 +24,21 @@ class BarcodeScannerApp extends Component {
 
     this.handleBarcode = this.handleBarcode.bind(this);
     this.findProduct = this.findProduct.bind(this);
+    this.resetState = this.resetState.bind(this);
   }
 
   findProduct(barcode) {
       return fetch(`http://192.168.107.46:8080/barcodes/find/${barcode}`)
                 .then(response => response.json())
+  }
+
+  resetState() {
+      this.setState({
+        barcode: '',
+        productName: '',
+        text: 'Scan Barcode',
+        type: '',
+      });
   }
 
   handleBarcode(e) {
@@ -45,14 +56,34 @@ class BarcodeScannerApp extends Component {
                       text: `${productName}`,
                       type: e.type,
                     });
+
+                    this.popup.tip({
+                        title: 'Product found!',
+                        content: `${productName}`,
+                        btn: {
+                            text: 'OK!',
+                            style: {
+                                color: 'green'
+                            },
+                            callback: () => {
+                                this.resetState();
+                            }
+                        }
+                    });
                 }
                 else {
-                    // product not found
-                    this.setState({
-                      barcode: '',
-                      productName: '',
-                      text: 'Scan Barcode',
-                      type: '',
+                    this.popup.tip({
+                        title: 'Product not found!',
+                        content: 'Please try again',
+                        btn: {
+                            text: 'Close!',
+                            style: {
+                                color: 'red'
+                            },
+                            callback: () => {
+                                this.resetState();
+                            }
+                        }
                     });
                 }
             })
@@ -69,9 +100,9 @@ class BarcodeScannerApp extends Component {
           torchMode={this.state.torchMode}
           cameraType={this.state.cameraType}
         />
-        <View style={styles.statusBar}>
-          <Text style={styles.statusBarText}>{this.state.text}</Text>
-        </View>
+
+        <Popup ref={popup => this.popup = popup } isOverlayClickClose={false} />
+
       </View>
     );
   }
